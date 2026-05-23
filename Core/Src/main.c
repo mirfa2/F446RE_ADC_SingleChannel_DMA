@@ -41,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 /* USER CODE BEGIN PV */
 
@@ -49,6 +50,7 @@ ADC_HandleTypeDef hadc1;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -56,6 +58,34 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+	//single channel ADC with DMA will trigger the interrupt at the same rate as single channel ADC
+	//with IT, so IT is better for single channel. This is for demonstration purpose only
+
+	//continuous conv enabled. DMA Continuous Request enabled and DMA in circular mode so that the
+	//DMA can keep transferring data without needing to be restarted manually.
+	//If ADC resolution is higher than 8 bits, set the Data Width to Half Word
+
+uint16_t ADC_VAL[10];	//we need to provide an array to store the ADC data for DMA ADC.
+						//ADC values are automatically stored. no need to use get value function
+						//array is 20bytes because each element is uint16
+int scaledValue = 0;	//maps the raw ADC value to more convenient value eg [0-100]
+int count=0;
+
+//function to map the raw ADC values to scaled values, long has bigger range than int
+long map(long x, long in_min, long in_max, long out_min, long out_max)
+{
+  return (x - in_min) * (out_max - out_min + 1) / (in_max - in_min + 1) + out_min;
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	//the single channel output is stored in the first element of the array. i
+	//In multi channel each array element should be for different channel
+	scaledValue = map(ADC_VAL[0], 0, 4095, 0, 100);
+	count++;
+}
+
 
 /* USER CODE END 0 */
 
@@ -88,8 +118,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC_VAL, 1);
+  //the function expect a uint32_t pointer, so we need to typecast the ADC VAL array
+  //since we are using single channel, we request data for only a single element
+  //interrupt triggers after the conversion for a single channel is done
 
   /* USER CODE END 2 */
 
@@ -100,6 +136,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+      HAL_Delay(500);	//500ms delay, manually sets the ADC to run at 2Hz
+
   }
   /* USER CODE END 3 */
 }
@@ -187,7 +227,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -206,6 +246,22 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 
