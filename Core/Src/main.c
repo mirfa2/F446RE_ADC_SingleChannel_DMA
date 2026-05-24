@@ -70,7 +70,7 @@ static void MX_ADC1_Init(void);
 uint16_t ADC_VAL[10];	//we need to provide an array to store the ADC data for DMA ADC.
 						//ADC values are automatically stored. no need to use get value function
 						//array is 20bytes because each element is uint16
-int scaledValue = 0;	//maps the raw ADC value to more convenient value eg [0-100]
+uint8_t scaledValue = 0;	//maps the raw ADC value to more convenient value eg [0-100]
 int count=0;
 
 //function to map the raw ADC values to scaled values, long has bigger range than int
