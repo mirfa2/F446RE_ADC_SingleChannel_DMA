@@ -67,6 +67,17 @@ static void MX_ADC1_Init(void);
 	//DMA can keep transferring data without needing to be restarted manually.
 	//If ADC resolution is higher than 8 bits, set the Data Width to Half Word
 
+	//ADC_Clock_Frequency = Internal_Bus_Peripheral_Clock_Freq / ADC_Prescaler
+	//ADC_Conversion_Time = (Sampling_Cycles + Conversion_Cycles) / ADC_Clock_Frequency
+	//ADC_Sampling_Rate = 1/ADC_Conversion_Time
+
+	//eg: ADC1 connected to APB1, let APB1 peripheral clock = 4 Mhz and ADC_Prescaler = 6
+	//	  ADC_Clock_Freq = 666.67 kHz
+	//	  Sampling_Cycles is selected in the ADC setting, min 3
+	//	  Conversion_Cycles depends on MCU and ADC resolution, for F446RE, 12bit ADC requires 12 cycles
+	//	  let Sampling_Cycles = 480, and 12bit ADC, then ADC_Conversion_Time = 492/666.67kHz = 738 us
+	//	  ADC_Sampling_Rate = 1/738us = 1353 samples per seconds
+
 uint16_t ADC_VAL[10];	//we need to provide an array to store the ADC data for DMA ADC.
 						//ADC values are automatically stored. no need to use get value function
 						//array is 20bytes because each element is uint16
@@ -139,7 +150,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-      HAL_Delay(500);	//500ms delay, manually sets the ADC to run at 2Hz
+      HAL_Delay(500);	//ADC runs at much faster rate than 2Hz because its not handled by cpu
 
   }
   /* USER CODE END 3 */
