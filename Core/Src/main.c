@@ -62,6 +62,7 @@ static void MX_ADC1_Init(void);
 	//single channel ADC with DMA will trigger the interrupt at the same rate as single channel ADC
 	//with IT, so IT is better for single channel. This is for demonstration purpose only
 	//DMA is ideal for continuous/high-speed sampling. for occasional readings, interrupt mode better
+	//DMA automatically moves the data between memory to/from peripherals instead of the cpu
 
 	//continuous conv enabled. DMA Continuous Request enabled and DMA in circular mode so that the
 	//DMA can keep transferring data without needing to be restarted manually.
